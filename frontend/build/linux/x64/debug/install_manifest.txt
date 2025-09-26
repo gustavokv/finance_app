@@ -1,0 +1,14 @@
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/finance_app
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/data/icudtl.dat
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/lib/libflutter_linux_gtk.so
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/data/flutter_assets/assets/images/google_logo.png
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/data/flutter_assets/shaders/ink_sparkle.frag
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/data/flutter_assets/FontManifest.json
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/data/flutter_assets/NOTICES.Z
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/data/flutter_assets/NativeAssetsManifest.json
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/data/flutter_assets/fonts/MaterialIcons-Regular.otf
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/data/flutter_assets/AssetManifest.json
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/data/flutter_assets/AssetManifest.bin
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/data/flutter_assets/version.json
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/data/flutter_assets/kernel_blob.bin
+/home/gustavokv/Documentos/Github/finance_app/frontend/build/linux/x64/debug/bundle/data/flutter_assets/packages/cupertino_icons/assets/CupertinoIcons.ttf
