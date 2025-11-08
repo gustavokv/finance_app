@@ -1,0 +1,19 @@
+{
+  "name": "backend_finance_app",
+  "version": "1.0.0",
+  "description": "Backend server to a Flutter finance app.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch --env-file=../.env server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Gustavo Kermaunar Volobueff",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

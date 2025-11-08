@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'package:finance_app/services/api_service.dart';
+import 'package:finance_app/services/secure_storage_service.dart';
+import 'package:go_router/go_router.dart';
+
 class Login extends StatefulWidget {
   const Login({super.key});
 
@@ -10,6 +14,13 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   bool _isAuthenticating = false;
   bool _isLogin = true;
+  final GlobalKey<FormState> loginFormKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> registerFormKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _passwordConfirmationController =
+      TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +30,7 @@ class _LoginState extends State<Login> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background animado
+          // Animated background
           AnimatedContainer(
             duration: const Duration(milliseconds: 500),
             curve: Curves.easeOutQuad,
@@ -27,13 +38,12 @@ class _LoginState extends State<Login> {
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary,
             ),
-            // O padding superior diminui para o título "subir"
             padding: EdgeInsets.only(
               top: screenHeight * (_isAuthenticating ? 0.06 : 0.15),
             ),
             child: Column(
               children: [
-                // Opacidade animada para o ícone e subtítulo
+                // Animated opacity for icon and subtitle
                 if (!_isAuthenticating)
                   AnimatedOpacity(
                     opacity: _isAuthenticating ? 0.0 : 1.0,
@@ -70,13 +80,13 @@ class _LoginState extends State<Login> {
             ),
           ),
 
-          // Card animado
+          // Animated Card
           Align(
             alignment: Alignment.bottomCenter,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 500),
               curve: Curves.easeOutQuad,
-              // A altura do card muda de 50% para 80% da tela
+              // Card height changes from 80% to 50% on screen
               height: screenHeight * (_isAuthenticating ? 0.80 : 0.5),
               width: double.infinity,
               child: Card(
@@ -92,7 +102,7 @@ class _LoginState extends State<Login> {
                     vertical: 40,
                     horizontal: 50,
                   ),
-                  // AnimatedSwitcher para animar a troca de conteúdo
+                  // AnimatedSwitcher to animate the content change
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 400),
                     transitionBuilder: (child, animation) {
@@ -101,8 +111,8 @@ class _LoginState extends State<Login> {
                     child: _isAuthenticating
                         ? _isLogin
                               ? _buildLoginForm()
-                              : _buildRegisterForm() // Formulário de Login/Registro
-                        : _buildAuthButtons(screenWidth), // Botões Iniciais
+                              : _buildRegisterForm()
+                        : _buildAuthButtons(screenWidth), // Initial buttons
                   ),
                 ),
               ),
@@ -113,10 +123,10 @@ class _LoginState extends State<Login> {
     );
   }
 
-  /// Constrói os botões de "Log-In" e "Registre-se"
+  // Build Login and Register buttons
   Widget _buildAuthButtons(double screenWidth) {
     return Column(
-      key: const ValueKey('authButtons'), // Chave para o AnimatedSwitcher
+      key: const ValueKey('authButtons'), // Key to the AnimatedSwitcher
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Align(
@@ -176,7 +186,7 @@ class _LoginState extends State<Login> {
 
   Widget _buildLoginForm() {
     return Column(
-      key: const ValueKey('authForm'), // Chave para o AnimatedSwitcher
+      key: const ValueKey('authForm'), // Key to the AnimatedSwitcher
       children: [
         Row(
           children: [
@@ -185,7 +195,7 @@ class _LoginState extends State<Login> {
                 Icons.arrow_back_ios,
                 color: Theme.of(context).colorScheme.onPrimary,
               ),
-              onPressed: _toggleAuth, // Botão para reverter a animação
+              onPressed: _toggleAuth, // Button to reverse the animation
             ),
             Text(
               'Login',
@@ -197,22 +207,33 @@ class _LoginState extends State<Login> {
             ),
           ],
         ),
-        const SizedBox(height: 30),
-        TextFormField(decoration: const InputDecoration(labelText: 'Email')),
-        const SizedBox(height: 16),
-        TextFormField(
-          decoration: const InputDecoration(labelText: 'Senha'),
-          obscureText: true,
+        Form(
+          key: loginFormKey,
+          child: Column(
+            children: [
+              const SizedBox(height: 30),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordController,
+                decoration: const InputDecoration(labelText: 'Senha'),
+                obscureText: true,
+              ),
+              const SizedBox(height: 40),
+              authButtonTemplate(_loginUser, 'Entrar', double.infinity),
+            ],
+          ),
         ),
-        const SizedBox(height: 40),
-        authButtonTemplate(() async {}, 'Entrar', double.infinity),
       ],
     );
   }
 
   Widget _buildRegisterForm() {
     return Column(
-      key: const ValueKey('authForm'), // Chave para o AnimatedSwitcher
+      key: const ValueKey('authForm'), // Key to the AnimatedSwitcher
       children: [
         Row(
           children: [
@@ -221,7 +242,7 @@ class _LoginState extends State<Login> {
                 Icons.arrow_back_ios,
                 color: Theme.of(context).colorScheme.onPrimary,
               ),
-              onPressed: _toggleAuth, // Botão para reverter a animação
+              onPressed: _toggleAuth, // Button to reverse the animation
             ),
             Text(
               'Registre-se',
@@ -233,20 +254,54 @@ class _LoginState extends State<Login> {
             ),
           ],
         ),
-        const SizedBox(height: 30),
-        TextFormField(decoration: const InputDecoration(labelText: 'Email')),
-        const SizedBox(height: 16),
-        TextFormField(
-          decoration: const InputDecoration(labelText: 'Senha'),
-          obscureText: true,
+        Form(
+          key: registerFormKey,
+          child: Column(
+            children: [
+              const SizedBox(height: 30),
+              TextFormField(
+                controller: _usernameController,
+                decoration: const InputDecoration(labelText: 'Nome'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordController,
+                decoration: const InputDecoration(labelText: 'Senha'),
+                obscureText: true,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordConfirmationController,
+                decoration: const InputDecoration(labelText: 'Repita a Senha'),
+                obscureText: true,
+                validator: (context) {
+                  if (_passwordConfirmationController.text == '') {
+                    return 'Digite sua senha novamente';
+                  }
+
+                  if (_passwordController.text !=
+                      _passwordConfirmationController.text) {
+                    return 'As senhas devem ser iguais';
+                  }
+
+                  return null;
+                },
+              ),
+              const SizedBox(height: 40),
+              authButtonTemplate(_registerUser, 'Entrar', double.infinity),
+            ],
+          ),
         ),
-        const SizedBox(height: 40),
-        authButtonTemplate(() async {}, 'Entrar', double.infinity),
       ],
     );
   }
 
-  /// Alterna o estado de autenticação para disparar as animações
+  /// Changes the authentication state to trigger between animations
   void _toggleAuth() {
     setState(() {
       _isLogin = true;
@@ -259,6 +314,60 @@ class _LoginState extends State<Login> {
       _isLogin = false;
       _isAuthenticating = !_isAuthenticating;
     });
+  }
+
+  void _loginUser() async {
+    try {
+      final response = await ApiService.instance.post(
+        '/login',
+        data: {
+          'email': _emailController.text,
+          'password': _passwordController.text,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final token = response.data['token'];
+        final username = response.data['username'];
+
+        final storage = SecureStorageService.instance;
+        await storage.saveAuthToken(token);
+        await storage.saveUsername(username);
+        ApiService.instance.setAuthToken(token);
+
+        if (!mounted) return;
+        context.go('/home');
+      }
+    } catch (e) {
+      print('Fail on login: $e');
+    }
+  }
+
+  void _registerUser() async {
+    try {
+      final response = await ApiService.instance.post(
+        '/register',
+        data: {
+          'username': _usernameController.text,
+          'email': _emailController.text,
+          'password': _passwordController.text,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final token = response.data['token'];
+
+        final storage = SecureStorageService.instance;
+        await storage.saveAuthToken(token);
+        await storage.saveUsername(_usernameController.text);
+        ApiService.instance.setAuthToken(token);
+
+        if (!mounted) return;
+        context.go('/home');
+      }
+    } catch (e) {
+      print('Fail on register: $e');
+    }
   }
 
   ElevatedButton authButtonTemplate(
