@@ -12,13 +12,22 @@ const UserSchema = new Schema({
         unique: true,
         lowercase: true
     },
+    roles: {
+        User: {
+            type: Number,
+            default: 1000
+        },
+        Admin: Number
+    },
+    accountBalance:{
+        type: mongoose.Schema.Types.Decimal128,
+        required: true
+    },
     hashedPassword:{
         type: String,
         required: true
     },
-    refreshToken:{
-        type: String
-    }
+    refreshToken: String
 }, {
     timestamps: true
 });

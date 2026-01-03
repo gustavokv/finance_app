@@ -2,11 +2,9 @@ const UserRepository = require('../../repositories/UserRepository');
 const bcrypjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-require('dotenv').config();
-
 class AuthUserService{
-    async execute(email, password){
-        const userFound = await UserRepository.findByEmail(email);
+    async execute(parameterEmail, password){
+        const userFound = await UserRepository.findByEmail(parameterEmail);
 
         if(!userFound){
             const error = new Error('Email ou senha incorretos.');
@@ -16,8 +14,6 @@ class AuthUserService{
 
         const passwordMatch = await bcrypjs.compare(password, userFound.hashedPassword);
 
-        console.log(passwordMatch);
-
         if(!passwordMatch){
             const error = new Error('Email ou senha incorretos.');
             error.code = 401;
@@ -25,18 +21,21 @@ class AuthUserService{
         }
 
         const accessToken = jwt.sign(
-            {'name': userFound.name},
+            {
+                'email': userFound.email,
+                'roles': userFound.roles
+            },
             process.env.ACCESS_TOKEN_SECRET,
-            {expiresIn: '15m'}
+            {expiresIn: process.env.ACCESS_TOKEN_EXPIRATION}
         );
 
         const refreshToken = jwt.sign(
-            {'name': userFound.name},
+            {'email': userFound.email},
             process.env.REFRESH_TOKEN_SECRET,
-            {expiresIn: '1d'}
+            {expiresIn: process.env.REFRESH_TOKEN_EXPIRATION}
         );
 
-        const result = await UserRepository.update({_id: userFound._id}, {'refreshToken': refreshToken});
+        const result = await UserRepository.update({'_id': userFound._id}, {'refreshToken': refreshToken});
         
         if(!result){
             const error = new Error();
@@ -44,14 +43,8 @@ class AuthUserService{
             throw error; 
         }
 
-        return {
-            user: {
-                id: userFound._id,
-                name: userFound.name,
-                email: userFound.email
-            },
-            accessToken
-        };
+        const { name, email, accountBalance } = userFound;
+        return { accessToken, refreshToken, 'user': {'username': name, 'email': email, 'account_balance': accountBalance} };
     }
 }
 
