@@ -48,17 +48,12 @@ class UtilSnackBar {
         margin: const EdgeInsets.all(16),
         // Define a duração para 5 segundos
         duration: const Duration(seconds: 5),
-        // Usar showCloseIcon (nativo do Material 3) é mais robusto para o timer
-        // do que usar uma 'action' customizada, que pode prolongar a exibição
-        // dependendo das configurações de acessibilidade.
         showCloseIcon: true,
         closeIconColor: Colors.white,
         dismissDirection: DismissDirection.horizontal,
       ),
     );
   }
-
-  // --- Métodos Públicos (Não precisam mais de context!) ---
 
   static void showSuccess(String message) {
     _show(

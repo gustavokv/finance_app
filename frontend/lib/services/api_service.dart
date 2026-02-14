@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:finance_app/services/navigation_service.dart';
 
 const String apiUrl = "http://localhost:3500";
 
@@ -28,6 +30,8 @@ class ApiService {
     );
 
     _dio = Dio(options);
+
+    _setupInterceptors();
 
     _dio.interceptors.add(
       LogInterceptor(
@@ -129,10 +133,61 @@ class ApiService {
   }
 
   void setAuthToken(String token) {
-    _dio.options.headers['Authorization'] = 'Bearer $token';
+    _dio.options.headers['authorization'] = token;
   }
 
   void clearAuthToken() {
-    _dio.options.headers.remove('Authorization');
+    _dio.options.headers.remove('authorization');
+  }
+
+  void _setupInterceptors() {
+    _dio.interceptors.add(
+      QueuedInterceptorsWrapper(
+        onError: (DioException e, handler) async {
+          if (e.response?.statusCode == 401) {
+            try {
+              final response = await Dio(
+                BaseOptions(baseUrl: apiUrl),
+              ).post('/auth/access-token');
+
+              final message = response.data?['message'];
+              if (message == "invalid token" || message == "jwt expired") {
+                _handleLogout();
+                return handler.reject(e);
+              }
+
+              if (response.statusCode == 200) {
+                final newToken = response.data['token'];
+                setAuthToken(newToken);
+
+                // Refaz a requisição original
+                e.requestOptions.headers['authorization'] = newToken;
+                final retryResponse = await _dio.fetch(e.requestOptions);
+                return handler.resolve(retryResponse);
+              }
+            } catch (refreshError) {
+              _handleLogout();
+              return handler.reject(e);
+            }
+          }
+          return handler.next(e);
+        },
+      ),
+    );
+  }
+
+  // Função auxiliar para centralizar o logout
+  void _handleLogout() async {
+    clearAuthToken();
+    // Limpa cookies de sessão
+    await cookieJar.deleteAll();
+
+    // O GoRouter precisa de um pequeno delay para garantir que o Navigator está pronto
+    Future.microtask(() {
+      final context = NavigationService.navigatorKey.currentContext;
+      if (context != null) {
+        context.go('/');
+      }
+    });
   }
 }

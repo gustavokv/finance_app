@@ -43,8 +43,7 @@ class AuthUserService{
             throw error; 
         }
 
-        const { name, email, accountBalance } = userFound;
-        return { accessToken, refreshToken, 'user': {'username': name, 'email': email, 'account_balance': accountBalance} };
+        return { accessToken, refreshToken };
     }
 }
 

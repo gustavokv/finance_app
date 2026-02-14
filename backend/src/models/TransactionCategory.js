@@ -8,8 +8,14 @@ const TransactionCategory = new Schema({
     },
     color:{
         type: String,
+        enum: ['green', 'red', 'purple', 'yellow', 'orange', 'blue'],
         default: 'green'
+    },
+    type:{
+        type: String,
+        enum: ['EXPENSE', 'INCOME'],
+        required: true
     }
 }, {timestamps: true});
 
-model.exports = mongoose.model('TransactionCategory', TransactionCategory);
+module.exports = mongoose.model('TransactionCategory', TransactionCategory);

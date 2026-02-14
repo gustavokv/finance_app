@@ -15,7 +15,11 @@ class UserRepository {
     }
 
     async update(query, update){
-        return await User.findOneAndUpdate(query, update);
+        return await User.findOneAndUpdate(query, update, { new: true });
+    }
+
+    async updateBalance(userId, amount){
+        return await User.findOneAndUpdate({_id: userId}, {$inc: {accountBalance: amount}});
     }
 }
 
