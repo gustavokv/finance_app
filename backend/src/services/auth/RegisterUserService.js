@@ -11,7 +11,7 @@ class RegisterUserService{
             throw error;
         }
 
-        const hashedPassword = bcryptjs.hashSync(password, 10);
+        const hashedPassword = await bcryptjs.hash(password, 10);
 
         const accountBalance = 0;
         const user = await UserRepository.create({name, email, hashedPassword, accountBalance});

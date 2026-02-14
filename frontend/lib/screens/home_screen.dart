@@ -1,9 +1,14 @@
-import 'dart:convert';
+import 'package:finance_app/models/Transaction.dart';
 import 'package:finance_app/models/User.dart';
-import 'package:finance_app/services/secure_storage_service.dart';
+import 'package:finance_app/services/api_service.dart';
+import 'package:finance_app/utils/transaction.dart';
+import 'package:finance_app/widgets/transaction_tile.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:finance_app/utils/formatCurrency.dart';
+import 'package:go_router/go_router.dart';
+import 'package:finance_app/utils/format_currency.dart';
+import 'package:finance_app/widgets/add_transaction_modal.dart';
+import 'package:finance_app/utils/transaction_category.dart';
+import 'package:finance_app/models/TransactionCategory.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -15,66 +20,55 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   int _selectedIndex = 0;
   bool _isBalanceVisible = true;
-  User? _user; // Variável para armazenar o nome do usuário
+  bool _isLoading = false;
+
+  List<Transaction>? _transactions;
+  List<TransactionCategory>? _categories;
+  User? _user;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _loadData();
   }
 
-  // Busca os dados do usuário no Secure Storage
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final categories = await loadCategories();
+    final transactions = await loadTransactions();
+
+    if (mounted) {
+      setState(() {
+        _categories = categories
+            .map((json) => TransactionCategory.fromJson(json))
+            .toList();
+
+        _transactions = transactions
+            .map((json) => Transaction.fromJson(json))
+            .toList();
+
+        _isLoading = false;
+      });
+    }
+  }
+
   Future<void> _loadUserData() async {
     try {
-      final userData = await SecureStorageService.instance.getUser();
-      final Map<String, dynamic> userJson =
-          jsonDecode(userData!) as Map<String, dynamic>;
+      final response = await ApiService.instance.get('/user/profile');
 
       if (mounted) {
         setState(() {
-          _user = User.fromJson(userJson);
+          _user = User.fromJson(response.data['user']);
         });
       }
     } catch (e) {
       debugPrint('Erro ao carregar usuário: $e');
     }
   }
-
-  // Mock Data
-  final List<Map<String, dynamic>> _transactions = [
-    {
-      'title': 'Supermercado Angeloni',
-      'category': 'Alimentação',
-      'amount': -450.25,
-      'date': DateTime.now(),
-      'icon': Icons.shopping_cart_rounded,
-      'color': Colors.orange,
-    },
-    {
-      'title': 'Salário Mensal',
-      'category': 'Renda',
-      'amount': 5200.00,
-      'date': DateTime.now().subtract(const Duration(days: 1)),
-      'icon': Icons.work_rounded,
-      'color': Colors.green,
-    },
-    {
-      'title': 'Netflix Assinatura',
-      'category': 'Lazer',
-      'amount': -55.90,
-      'date': DateTime.now().subtract(const Duration(days: 2)),
-      'icon': Icons.movie_rounded,
-      'color': Colors.purple,
-    },
-    {
-      'title': 'Uber Viagem',
-      'category': 'Transporte',
-      'amount': -24.50,
-      'date': DateTime.now().subtract(const Duration(days: 3)),
-      'icon': Icons.directions_car_rounded,
-      'color': Colors.blue,
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +79,6 @@ class _HomeState extends State<Home> {
       backgroundColor: colorScheme.surface,
       body: Stack(
         children: [
-          // 1. Conteúdo da Página
           Positioned.fill(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -113,30 +106,42 @@ class _HomeState extends State<Home> {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () => context.go('/transactions'),
                           child: const Text('Ver tudo'),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _transactions.length,
-                      itemBuilder: (context, index) {
-                        return _TransactionTile(
-                          transaction: _transactions[index],
-                          isLast: index == _transactions.length - 1,
-                        );
-                      },
-                    ),
+
+                    _isLoading == true ||
+                            _transactions == null ||
+                            _categories == null
+                        ? Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                ColorScheme.of(context).primary,
+                              ),
+                              strokeWidth: 4.0,
+                            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _transactions!.length,
+                            itemBuilder: (context, index) {
+                              return TransactionTile(
+                                transaction: _transactions![index],
+                                categories: _categories!,
+                                isLast: index == _transactions!.length - 1,
+                              );
+                            },
+                          ),
                   ],
                 ),
               ),
             ),
           ),
 
-          // 2. Menu de Navegação Customizado
           Positioned(
             left: 0,
             right: 0,
@@ -144,7 +149,19 @@ class _HomeState extends State<Home> {
             child: _CustomBottomNavigation(
               selectedIndex: _selectedIndex,
               onItemSelected: (index) => setState(() => _selectedIndex = index),
-              onAddPressed: () {},
+              onAddPressed: () async {
+                await showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => const AddTransactionModal(),
+                );
+
+                if (mounted) {
+                  await _loadUserData();
+                  await _loadData();
+                }
+              },
             ),
           ),
         ],
@@ -293,7 +310,9 @@ class _HomeState extends State<Home> {
             children: [
               _buildIncomeExpenseIndicator(
                 label: 'Receitas',
-                amount: 'R\$ 5.200',
+                amount: _isBalanceVisible && _user != null
+                    ? formatCurrency(_user!.thisMonthIncomes)
+                    : 'R\$ ••••••',
                 icon: Icons.arrow_upward_rounded,
                 color: Colors.greenAccent.shade200,
                 bgOpacity: 0.2,
@@ -301,7 +320,9 @@ class _HomeState extends State<Home> {
               const SizedBox(width: 20),
               _buildIncomeExpenseIndicator(
                 label: 'Despesas',
-                amount: 'R\$ 1.840',
+                amount: _isBalanceVisible && _user != null
+                    ? formatCurrency(_user!.thisMonthExpenses)
+                    : 'R\$ ••••••',
                 icon: Icons.arrow_downward_rounded,
                 color: Colors.redAccent.shade100,
                 bgOpacity: 0.2,
@@ -572,100 +593,6 @@ class _QuickActionButton extends StatelessWidget {
               fontWeight: FontWeight.w500,
               color: colorScheme.onSurface.withValues(alpha: 0.8),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TransactionTile extends StatelessWidget {
-  final Map<String, dynamic> transaction;
-  final bool isLast;
-
-  const _TransactionTile({required this.transaction, this.isLast = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isNegative = (transaction['amount'] as double) < 0;
-    final formatter = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      margin: EdgeInsets.only(bottom: isLast ? 0 : 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: (transaction['color'] as Color).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              transaction['icon'] as IconData,
-              color: transaction['color'] as Color,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  transaction['title'],
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                Text(
-                  transaction['category'],
-                  style: TextStyle(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formatter.format(transaction['amount']),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: isNegative
-                      ? Colors.red.shade400
-                      : Colors.green.shade600,
-                ),
-              ),
-              Text(
-                DateFormat('d MMM', 'pt_BR').format(transaction['date']),
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontSize: 12,
-                ),
-              ),
-            ],
           ),
         ],
       ),

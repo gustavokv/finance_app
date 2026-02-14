@@ -3,6 +3,7 @@ const express = require('express');
 const connectDB = require('./config/mongodb');
 const cookieParser = require('cookie-parser');
 const verifyAccess = require('./middleware/verifyAccess');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -20,5 +21,9 @@ app.use('/auth', require('./routes/auth.routes'));
 app.use(verifyAccess);
 app.use('/transaction', require('./routes/transactions.routes'));
 app.use('/category', require('./routes/category.routes'));
+app.use('/user', require('./routes/user.routes'));
+
+// Error Handling
+app.use(errorHandler);
 
 module.exports = app;

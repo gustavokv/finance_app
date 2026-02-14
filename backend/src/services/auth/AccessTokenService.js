@@ -4,13 +4,14 @@ const UserRepository = require('../../repositories/UserRepository');
 class AccessTokenService {
     async execute(token){
         return new Promise((resolve, reject) => {
+
             jwt.verify(
                 token,
                 process.env.REFRESH_TOKEN_SECRET,
                 async (err, userInfo) => {
                     if(err){
                         const error = new Error(err.message);
-                        error.code = 403;
+                        error.code = 401;
 
                         return reject(error);
                     }
@@ -48,8 +49,7 @@ class AccessTokenService {
                         return reject(error);
                     }
 
-                    const { name, email, accountBalance } = userFound;
-                    return resolve({ accessToken, refreshToken, 'user': {'username': name, 'email': email, 'account_balance': accountBalance} });
+                    return resolve({ accessToken, refreshToken });
                 }
             );
         }

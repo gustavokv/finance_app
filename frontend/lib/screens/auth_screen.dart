@@ -423,9 +423,7 @@ class _LoginState extends State<Login> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final token = response.data['token'];
-        final user = response.data['user'];
-        await SecureStorageService.instance.saveAuthToken(token, 'accessToken');
-        await SecureStorageService.instance.saveUser(user);
+        await SecureStorageService.instance.saveAuthToken(token);
         ApiService.instance.setAuthToken(token);
 
         if (!mounted) return;

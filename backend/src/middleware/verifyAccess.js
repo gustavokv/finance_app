@@ -12,7 +12,7 @@ const verifyAccess = (req, res, next) => {
         process.env.ACCESS_TOKEN_SECRET,
         (err, userInfo) => {
             if(err){
-                return res.status(403).json({'message': err.message});
+                return res.status(401).json({'message': err.message});
             }
 
             req.userInfo = userInfo;

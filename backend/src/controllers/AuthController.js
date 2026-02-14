@@ -5,7 +5,7 @@ const AccessTokenService = require('../services/auth/AccessTokenService');
 const LogoutUserService = require('../services/auth/LogoutUserService');
 
 class AuthController {
-    async register(req, res){
+    async register(req, res, next){
         const registerModel = z.object({
             name: z.string().min(4),
             password: z.string().min(8),
@@ -19,19 +19,11 @@ class AuthController {
             res.status(201).send();
         }
         catch(error){
-            let errorStatus = error.code;
-            let errorMessage = error.message;
-
-            if(error instanceof ZodError){
-                errorStatus = 401;
-                errorMessage = error.issues[0].message;
-            }
-
-            res.status(errorStatus).json({'message': errorMessage});
+            next(error);
         }
     }
 
-    async login(req, res){
+    async login(req, res, next){
         const loginModel = z.object({
             email: z.email(),
             password: z.string()
@@ -39,7 +31,7 @@ class AuthController {
 
         try{
             const { email, password } = loginModel.parse(req.body);
- 
+
             const response = await AuthUserService.execute(email, password);
 
             res.cookie('refreshToken', response.refreshToken, {
@@ -49,26 +41,18 @@ class AuthController {
                 sameSite: 'strict'
             });
 
-            res.status(200).json({'token': response.accessToken, 'user': response.user});
+            res.status(200).json({ 'token': response.accessToken });
         }
         catch(error){
-            let errorStatus = error.code;
-            let errorMessage = error.message;
-
-            if(error instanceof ZodError){
-                errorStatus = 401;
-                errorMessage = error.issues[0].message;
-            }
-
-            res.status(errorStatus).json({'message': errorMessage});
+            next(error);
         }
     }  
 
-    async logout(req, res) {
+    async logout(req, res, next) {
         const refreshToken = req.cookies['refreshToken'];
 
         if(!refreshToken){
-            res.status(401).json({'message': 'O token não foi encontrado na requisição.'});
+            res.status(404).json({'message': 'O token não foi encontrado na requisição.'});
         }
 
         try{
@@ -77,14 +61,11 @@ class AuthController {
             res.status(204).send();
         }
         catch(error){
-            let errorStatus = error.code;
-            let errorMessage = error.message;
-
-            res.status(errorStatus).json({'message': errorMessage});
+           next(error);
         }
     }
     
-    async newAccessToken(req, res){
+    async newAccessToken(req, res, next){
         const refreshToken = req.cookies['refreshToken'];
 
         if(!refreshToken){
@@ -101,13 +82,10 @@ class AuthController {
                 sameSite: 'strict'
             });
 
-            res.status(200).json({'token': response.accessToken, 'user': response.user});
+            res.status(200).json({ 'token': response.accessToken });
         } 
         catch(error){
-            let errorStatus = error.code;
-            let errorMessage = error.message;
-
-            res.status(errorStatus).json({'message': errorMessage});
+            next(error);
         }
     }
 }
